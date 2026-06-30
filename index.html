@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memoria Misteriosa</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top, #2b0b16 0%, #080608 45%, #020202 100%);
+      color: #f4e6d0;
+      font-family: "Courier New", monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    .game {
+      width: min(96vw, 560px);
+      min-height: 96vh;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 28px;
+      color: #ff3b3b;
+      text-shadow: 3px 3px 0 #000, 0 0 12px #7a0000;
+      letter-spacing: 2px;
+      margin: 8px 0 0;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 12px;
+      color: #b8a28a;
+      margin-top: 2px;
+    }
+
+    .panel {
+      border: 4px solid #3a1a1a;
+      background: #130d10;
+      box-shadow: 0 0 0 4px #050505, inset 0 0 20px #000;
+      padding: 10px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      text-align: center;
+      font-size: 12px;
+    }
+
+    .stat {
+      background: #211117;
+      border: 2px solid #4b2222;
+      padding: 6px 2px;
+      color: #f3d7b2;
+    }
+
+    .stat span {
+      display: block;
+      color: #ff6464;
+      font-size: 16px;
+      margin-top: 2px;
+    }
+
+    .message {
+      text-align: center;
+      font-size: 13px;
+      color: #d7b98e;
+      min-height: 18px;
+    }
+
+    .board {
+      display: grid;
+      gap: 8px;
+      justify-content: center;
+      align-content: center;
+      padding: 10px;
+      min-height: 420px;
+    }
+
+    .card {
+      width: 68px;
+      height: 86px;
+      perspective: 500px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.22s steps(2, end);
+    }
+
+    .card.flipped .card-inner,
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border: 4px solid #1b0d0d;
+      image-rendering: pixelated;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 0 #000, inset 0 0 0 3px rgba(255,255,255,0.04);
+    }
+
+    .back {
+      background:
+        linear-gradient(45deg, #2b1018 25%, transparent 25%),
+        linear-gradient(-45deg, #2b1018 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #2b1018 75%),
+        linear-gradient(-45deg, transparent 75%, #2b1018 75%);
+      background-color: #10080c;
+      background-size: 18px 18px;
+      background-position: 0 0, 0 9px, 9px -9px, -9px 0px;
+    }
+
+    .back::after {
+      content: "☠";
+      color: #7b1e1e;
+      font-size: 32px;
+      text-shadow: 2px 2px #000;
+    }
+
+    .front {
+      transform: rotateY(180deg);
+      background: #1b1518;
+    }
+
+    .card.matched .front {
+      border-color: #3c5c2c;
+      box-shadow: 0 4px 0 #000, 0 0 14px #4f8a35;
+    }
+
+    .pixel-icon {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      filter: drop-shadow(3px 3px 0 #000);
+    }
+
+    .px { width: 100%; height: 100%; background: transparent; }
+    .red { background: #c92d2d; }
+    .white { background: #e8dcc7; }
+    .bone { background: #c9b58e; }
+    .black { background: #060606; }
+    .gray { background: #666; }
+    .green { background: #5e9c3a; }
+    .purple { background: #7e3bb5; }
+    .yellow { background: #d8b94c; }
+    .blue { background: #375ca8; }
+    .brown { background: #6d3d1e; }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    button {
+      font-family: "Courier New", monospace;
+      font-weight: bold;
+      color: #f4e6d0;
+      background: #32121a;
+      border: 4px solid #5c2525;
+      padding: 12px 8px;
+      box-shadow: 0 5px 0 #050505;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    button:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #050505;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.86);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      padding: 20px;
+    }
+
+    .modal {
+      width: min(92vw, 440px);
+      background: #130d10;
+      border: 5px solid #5c2525;
+      box-shadow: 0 0 0 5px #050505, 0 0 30px #7a0000;
+      padding: 18px;
+      text-align: center;
+    }
+
+    .modal h2 {
+      color: #ff4c4c;
+      text-shadow: 3px 3px #000;
+      margin-top: 0;
+    }
+
+    .modal p {
+      font-size: 14px;
+      color: #d2b993;
+      line-height: 1.4;
+    }
+
+    .hidden { display: none; }
+
+    .fog {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.025), transparent);
+      animation: fogMove 8s linear infinite;
+      opacity: 0.5;
+    }
+
+    @keyframes fogMove {
+      from { transform: translateX(-50%); }
+      to { transform: translateX(50%); }
+    }
+
+    @media (max-width: 420px) {
+      .card { width: 58px; height: 76px; }
+      .board { gap: 6px; min-height: 390px; }
+      .title { font-size: 24px; }
+      .pixel-icon { width: 40px; height: 40px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="fog"></div>
+
+  <main class="game">
+    <div>
+      <h1 class="title">MEMORIA MISTERIOSA</h1>
+      <div class="subtitle">Juego de memoria pixel art</div>
+    </div>
+
+    <section class="panel stats">
+      <div class="stat">Nivel<span id="level">1</span></div>
+      <div class="stat">Vidas<span id="lives">10</span></div>
+      <div class="stat">Movs<span id="moves">0</span></div>
+      <div class="stat">Tiempo<span id="time">0</span></div>
+    </section>
+
+    <div class="message" id="message">Encontrá las parejas y completá el desafío misterioso.</div>
+    <section class="panel board" id="board"></section>
+
+    <section class="controls">
+      <button id="retryButton">Reintentar</button>
+      <button id="newGameButton">Nuevo juego</button>
+    </section>
+  </main>
+
+  <div class="overlay" id="startScreen">
+    <div class="modal">
+      <h2>Memoria Misteriosa</h2>
+      <p>Cada nivel agrega más cartas, pero tenés muchas oportunidades para seguir intentando.</p>
+      <p>Tocá dos cartas para revelar los horrores escondidos.</p>
+      <button id="startButton">Empezar</button>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="endScreen">
+    <div class="modal">
+      <h2 id="endTitle">Fin</h2>
+      <p id="endText"></p>
+      <div class="controls">
+        <button id="endRetryButton">Reintentar nivel</button>
+        <button id="endNewGameButton">Nuevo juego</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const board = document.getElementById("board");
+    const levelEl = document.getElementById("level");
+    const livesEl = document.getElementById("lives");
+    const movesEl = document.getElementById("moves");
+    const timeEl = document.getElementById("time");
+    const messageEl = document.getElementById("message");
+    const startScreen = document.getElementById("startScreen");
+    const endScreen = document.getElementById("endScreen");
+    const endTitle = document.getElementById("endTitle");
+    const endText = document.getElementById("endText");
+
+    const startButton = document.getElementById("startButton");
+    const retryButton = document.getElementById("retryButton");
+    const newGameButton = document.getElementById("newGameButton");
+    const endRetryButton = document.getElementById("endRetryButton");
+    const endNewGameButton = document.getElementById("endNewGameButton");
+
+    let level = 1;
+    let lives = 10;
+    let moves = 0;
+    let time = 0;
+    let timer = null;
+    let firstCard = null;
+    let secondCard = null;
+    let lockBoard = false;
+    let matches = 0;
+    let totalPairs = 0;
+    let started = false;
+
+    const levels = [
+      { pairs: 4, lives: 12, columns: 4, text: "Comienza el recorrido por la mansión misteriosa." },
+      { pairs: 6, lives: 14, columns: 4, text: "Se escuchan sonidos curiosos en el pasillo." },
+      { pairs: 8, lives: 16, columns: 4, text: "Los retratos parecen observar el desafío." },
+      { pairs: 10, lives: 18, columns: 5, text: "El ambiente se vuelve cada vez más misterioso." },
+      { pairs: 12, lives: 22, columns: 4, text: "La mansión prepara el último desafío." }
+    ];
+
+    const icons = [
+      { name: "skull", map: ["00111100","01111110","11011011","11111111","01111110","00100100","01100110","00000000"], colors: { "1": "bone" } },
+      { name: "blood", map: ["00011000","00111100","00111100","01111110","01111110","11111111","01111110","00111100"], colors: { "1": "red" } },
+      { name: "eye", map: ["00000000","00111100","01111110","11011011","11111111","01111110","00111100","00000000"], colors: { "1": "white" } },
+      { name: "ghost", map: ["00111100","01111110","11011011","11111111","11111111","11111111","10100101","00000000"], colors: { "1": "gray" } },
+      { name: "pumpkin", map: ["00011000","01111110","11111111","10100101","11111111","11011011","01111110","00000000"], colors: { "1": "yellow" } },
+      { name: "knife", map: ["00000010","00000110","00001100","00011000","00110000","01100000","11000000","10000000"], colors: { "1": "gray" } },
+      { name: "spider", map: ["10000001","01011010","00111100","11111111","11111111","00111100","01000010","10000001"], colors: { "1": "black" } },
+      { name: "candle", map: ["00011000","00111100","00011000","00111100","00111100","00111100","01111110","01111110"], colors: { "1": "yellow" } },
+      { name: "coffin", map: ["00111100","01111110","01100110","01111110","01100110","01111110","01111110","00111100"], colors: { "1": "brown" } },
+      { name: "moon", map: ["00111100","01110000","11100000","11100000","11100000","01110000","00111100","00000000"], colors: { "1": "blue" } },
+      { name: "bat", map: ["00000000","10000001","11000011","11100111","01111110","00111100","00011000","00000000"], colors: { "1": "purple" } },
+      { name: "toxic", map: ["00111100","01111110","11011011","11111111","00111100","01100110","11000011","00000000"], colors: { "1": "green" } }
+    ];
+
+    startButton.addEventListener("click", startGame);
+    retryButton.addEventListener("click", restartLevel);
+    newGameButton.addEventListener("click", newGame);
+    endRetryButton.addEventListener("click", restartLevel);
+    endNewGameButton.addEventListener("click", newGame);
+
+    function startGame() {
+      startScreen.classList.add("hidden");
+      endScreen.classList.add("hidden");
+      newGame();
+    }
+
+    function newGame() {
+      level = 1;
+      endScreen.classList.add("hidden");
+      setupLevel();
+    }
+
+    function restartLevel() {
+      endScreen.classList.add("hidden");
+      setupLevel();
+    }
+
+    function setupLevel() {
+      clearInterval(timer);
+      timer = null;
+
+      const config = levels[level - 1];
+      lives = config.lives;
+      moves = 0;
+      time = 0;
+      matches = 0;
+      totalPairs = config.pairs;
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+      started = false;
+
+      levelEl.textContent = level;
+      livesEl.textContent = lives;
+      movesEl.textContent = moves;
+      timeEl.textContent = time;
+      messageEl.textContent = config.text;
+
+      board.innerHTML = "";
+      board.style.gridTemplateColumns = `repeat(${config.columns}, auto)`;
+
+      const selectedIcons = icons.slice(0, config.pairs);
+      let cards = [];
+      selectedIcons.forEach(icon => cards.push(icon, icon));
+      cards = shuffle(cards);
+
+      cards.forEach((icon, index) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.dataset.name = icon.name;
+        card.dataset.index = index;
+        card.innerHTML = `
+          <div class="card-inner">
+            <div class="face back"></div>
+            <div class="face front">${createPixelIcon(icon)}</div>
+          </div>
+        `;
+        card.addEventListener("click", () => flipCard(card));
+        board.appendChild(card);
+      });
+    }
+
+    function createPixelIcon(icon) {
+      let html = `<div class="pixel-icon">`;
+      icon.map.forEach(row => {
+        row.split("").forEach(cell => {
+          if (cell === "0") html += `<div class="px"></div>`;
+          else html += `<div class="px ${icon.colors[cell] || "white"}"></div>`;
+        });
+      });
+      html += `</div>`;
+      return html;
+    }
+
+    function flipCard(card) {
+      if (lockBoard) return;
+      if (card.classList.contains("flipped")) return;
+      if (card.classList.contains("matched")) return;
+
+      if (!started) {
+        started = true;
+        timer = setInterval(() => {
+          time++;
+          timeEl.textContent = time;
+        }, 1000);
+      }
+
+      card.classList.add("flipped");
+
+      if (!firstCard) {
+        firstCard = card;
+        return;
+      }
+
+      secondCard = card;
+      moves++;
+      movesEl.textContent = moves;
+      checkMatch();
+    }
+
+    function checkMatch() {
+      const isMatch = firstCard.dataset.name === secondCard.dataset.name;
+
+      if (isMatch) {
+        firstCard.classList.add("matched");
+        secondCard.classList.add("matched");
+        matches++;
+        messageEl.textContent = randomGoodMessage();
+        resetTurn();
+
+        if (matches === totalPairs) {
+          setTimeout(nextLevel, 500);
+        }
+      } else {
+        lives--;
+        livesEl.textContent = lives;
+        messageEl.textContent = randomBadMessage();
+        lockBoard = true;
+
+        setTimeout(() => {
+          if (firstCard) firstCard.classList.remove("flipped");
+          if (secondCard) secondCard.classList.remove("flipped");
+          resetTurn();
+
+          if (lives <= 0) loseGame();
+        }, 750);
+      }
+    }
+
+    function resetTurn() {
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+    }
+
+    function nextLevel() {
+      clearInterval(timer);
+      timer = null;
+
+      if (level >= levels.length) {
+        winGame();
+        return;
+      }
+
+      level++;
+      setupLevel();
+    }
+
+    function winGame() {
+      clearInterval(timer);
+      timer = null;
+      endTitle.textContent = "¡Lo lograste!";
+      endText.textContent = `Completaste todos los niveles. Excelente memoria y concentración.`;
+      endScreen.classList.remove("hidden");
+    }
+
+    function loseGame() {
+      clearInterval(timer);
+      timer = null;
+      endTitle.textContent = "Fin del intento";
+      endText.textContent = `Te quedaste sin oportunidades en el nivel ${level}. Podés reintentar este mismo nivel o empezar desde cero.`;
+      endScreen.classList.remove("hidden");
+    }
+
+    function randomGoodMessage() {
+      const messages = [
+        "Encontraste una pareja.",
+        "El símbolo quedó completo.",
+        "Buen trabajo, el pasillo queda tranquilo.",
+        "El misterio se aleja un poco.",
+        "Muy buen intento."
+      ];
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+
+    function randomBadMessage() {
+      const messages = [
+        "No eran iguales. Probá de nuevo.",
+        "Una pista se esconde cerca.",
+        "No eran iguales. Seguí intentando.",
+        "El piso hace un sonido misterioso.",
+        "Perdiste una oportunidad, pero todavía podés lograrlo."
+      ];
+      return messages[Math.floor(Math.random() * messages.length)];
+    }
+
+    function shuffle(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+  </script>
+</body>
+</html>
